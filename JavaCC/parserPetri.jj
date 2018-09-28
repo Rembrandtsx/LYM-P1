@@ -1,0 +1,341 @@
+/**
+ * JavaCC template file created by SF JavaCC plugin 1.5.28+ wizard for JavaCC 1.5.0+
+ */options{
+	IGNORE_CASE = false;
+	STATIC = false;}PARSER_BEGIN(ParserPetri)package sintaxisPetri;
+
+import java.util.*;
+
+public class ParserPetri
+{
+  public List<String> places = new ArrayList<String>();
+  public List<String> edges = new ArrayList<String>();
+  public List<String> transitions = new ArrayList<String>();
+  public List<String> variables = new ArrayList<String>();
+}
+
+PARSER_END(ParserPetri)
+
+SKIP :
+{
+  " "
+| "\r"
+| "\t"
+| "\n"
+}
+
+TOKEN : /* OPERATORS */
+{
+  < P_RED : "P_RED">
+| < VAR : "VAR" >
+| < SITIO : "SITIO :" >
+| < TRANSICION : "TRANSICION">
+| < ARCO : "ARCO" >
+| < FIN_RED : "FIN_RED" >
+| < ASIGNADOR : ":=" >
+| < POL_DISPARO_E : "Exponencial" >
+| < POL_DISPARO_D : "Deterministico" >
+| < POL_DISPARO_U : "Uniforme" >
+| < PLUS : "+" >
+| < MINUS : "-" >
+| < MULTIPLY : "*" >
+| < DIVIDE : "/" >
+| < CAP : "capacidad" >
+| < MARK : "marcacion_i" >
+}
+
+TOKEN :
+{
+  < #DIGIT : [ "0"-"9" ] >
+| < #MAY : ["A"-"Z"] >
+| < #MIN : ["a"-"z"] >
+| < NATURAL : (< DIGIT >)(< DIGIT >)* >
+| < VARIABLE : ( <MAY>  ( <MAY > | < MIN >| < DIGIT >)* )>
+| < NOMBRE : ( <MIN>  ( <MAY > | < MIN >| < DIGIT >)* ) >
+| < NOM_EDGE : ( <MAY>  ( <MAY > | < MIN >| < DIGIT >)* " :")>
+}
+
+void net() :
+{}
+{
+	<P_RED> <NOMBRE> body() <FIN_RED>
+}
+
+void body() :
+{}
+{
+  (variables())* (places())+ (transitions())+ (edges())+
+}
+
+void variables() :
+{}
+{
+  <VAR> addVariable() "=" <NATURAL>
+}
+
+void addVariable() throws Error :
+{
+	Token token;
+}
+{
+  	(token = <VARIABLE>)
+  	{
+  	  	boolean encontro = false;
+  	  	for(int i = 0; i < variables.size() && !encontro; i++)
+  	  	{
+	  	  	  if(variables.get(i).equals(token.image))
+	  	  	  {
+	  	  	     encontro = true;
+	  	  	     throw new Error("Ya se habia declarado la variable " + token.image+" o es un nombre invalido");
+	  	  	  }
+  	  	}
+  	  	if(!encontro)
+  	  	{  	  	  
+	  		variables.add(token.image);
+  	  	}
+
+ 	}
+}
+
+void places() :
+{}
+{
+  <SITIO> addPlace() placeDeclaration()
+}
+
+void addPlace() throws Error :
+{
+	Token token;
+}
+{
+  	(token = <VARIABLE>)
+  	{
+  	  	boolean encontro = false;
+  	  	for(int i = 0; i < places.size() && !encontro; i++)
+  	  	{
+	  	  	  if(places.get(i).equals(token.image))
+	  	  	  {
+	  	  	     encontro = true;
+	  	  	     throw new Error("Ya se habia declarado el sitio " + token.image+" o es un nombre invalido");
+	  	  	  }
+  	  	}
+  	  	if(!encontro)
+  	  	{  	  	  
+	  		places.add(token.image);
+  	  	}
+
+ 	}
+}
+
+void placeDeclaration() :
+{}
+{
+  (<CAP> <ASIGNADOR> (operation()))? marking()
+}
+
+void marking() :
+{}
+{
+   <MARK> <ASIGNADOR> (<CAP>|operation())
+}
+
+void transitions() :
+{}
+{
+	<TRANSICION> ((addTransition()) | ( "(" addTransition() "," firingPolicy() ")" ))
+}
+
+void addTransition() throws Error :
+{
+	Token token;
+}
+{
+  	(token = <VARIABLE>)
+  	{
+  	  	boolean encontro = false;
+  	  	for(int i = 0; i < transitions.size() && !encontro; i++)
+  	  	{
+	  	  	  if(transitions.get(i).equals(token.image))
+	  	  	  {
+	  	  	     encontro = true;
+	  	  	     throw new Error("Ya se habia declarado la transicion " + token.image+" o es un nombre invalido");
+	  	  	  }
+  	  	}
+  	  	if(!encontro)
+  	  	{  	  	  
+	  		transitions.add(token.image);
+  	  	}
+
+ 	}
+}
+
+void firingPolicy() :
+{}
+{
+  ((<POL_DISPARO_E>|<POL_DISPARO_U>) "," (operation()) "," (operation()))
+| (<POL_DISPARO_D> "," (operation()))
+}
+
+void edges() :
+{}
+{
+  <ARCO> ("(" (hasName())? verifyEdge() ("," operation())?")" )
+
+}
+
+void hasName() throws Error:
+{
+	Token token;
+}
+{
+	(token = <NOM_EDGE>)
+  	{
+  	  	boolean encontro = false;
+  	  	for(int i = 0; i < edges.size() && !encontro; i++)
+  	  	{
+	  	  	  if(edges.get(i).equals(token.image))
+	  	  	  {
+	  	  	     encontro = true;
+	  	  	     throw new Error("Ya se habia declarado el arco con nombre " + token.image+" o es un nombre invalido");
+	  	  	  }
+  	  	}
+  	  	if(!encontro)
+  	  	{  	  	  
+	  		edges.add(token.image);
+  	  	}
+
+ 	}
+}
+
+void verifyEdge() throws Error :
+{
+  Token t1;
+  Token c;
+  Token t2;
+}
+{
+	(t1 =<VARIABLE> (c = ",") t2=<VARIABLE>)
+	{
+	 	boolean sitio1 = false;
+  	  	for(int i = 0; i < places.size() && !sitio1; i++)
+  	  	{
+	  	  	  if(places.get(i).equals(t1.image))
+	  	  	  {
+	  	  	     sitio1 = true;
+	  	  	  }
+  	  	}
+
+  	  	boolean sitio2 = false;
+  	  	for(int i = 0; i < places.size() && !sitio2; i++)
+  	  	{
+	  	  	  if(places.get(i).equals(t2.image))
+	  	  	  {
+	  	  	     sitio2 = true;
+	  	  	  }
+  	  	}
+
+  	  	boolean trans1 = false;
+  	  	for(int i = 0; i < transitions.size() && !trans1; i++)
+  	  	{
+	  	  	  if(transitions.get(i).equals(t1.image))
+	  	  	  {
+	  	  	     trans1 = true;
+	  	  	  }
+  	  	}
+
+  	  	boolean trans2 = false;
+  	  	for(int i = 0; i < transitions.size() && !trans2; i++)
+  	  	{
+	  	  	  if(transitions.get(i).equals(t2.image))
+	  	  	  {
+	  	  	     trans2 = true;
+	  	  	  }
+  	  	}
+  	  	//ENCONTRO QUE ERA DE SITIO A SITIO
+  	  	if(sitio1 && sitio2)
+  	  	{
+  	  		throw new Error("Se definio un arco de sitio a sitio: " + t1.image + " a " + t2.image);
+  	  	}
+  	  	//ENCONTRO QUE ERA DE TRANSICION A TRANSICION
+  	  	else if(trans1 && trans2)
+  	  	{
+  	  	  	throw new Error("Se definio un arco de transicion a transicion: " + t1.image + " a " + t2.image);
+  	  	}
+  	  	else if(sitio1 && !trans2)
+  	  	{
+  	  	  	throw new Error("La transicion " + t2.image + " a la que pretende llegar el arco no existe");
+  	  	}
+  	  	else if(!sitio1 && trans2)
+  	  	{
+  	  	  	throw new Error("El sitio " + t1.image + " de la que pretende salir el arco no existe");
+  	  	}
+  	  	else if(trans1 && !sitio2)
+  	  	{
+  	  	  	throw new Error("El sitio " + t2.image + " al que pretende llegar el arco no existe");
+  	  	}
+  	  	else if(!trans1 && sitio2)
+  	  	{
+  	  	  	throw new Error("La transicion " + t1.image + " de la que pretende salir el arco no existe");
+  	  	}
+  	  	else if(!trans1 && !trans2)
+  	  	{
+  	  	  	throw new Error("Se definio un arco de transicion a transicion: " + t1.image + " a " + t2.image +" que ni existen");
+  	  	}
+  	  	if(!sitio1 && !sitio2)
+  	  	{
+  	  		throw new Error("Se definio un arco de sitio a sitio: " + t1.image + " a " + t2.image+ " que ni existen");
+  	  	}
+	}
+}
+
+void var() throws Error :
+{
+	Token token;
+}
+{
+  	(token = <VARIABLE>)
+  	{
+  	  	boolean encontro = false;
+  	  	for(int i = 0; i < variables.size() && !encontro; i++)
+  	  	{
+	  	  	  if(variables.get(i).equals(token.image))
+	  	  	  {
+	  	  	     encontro = true;
+	  	  	  }
+  	  	}
+  	  	if(!encontro)
+  	  	{  	  	  
+	  		throw new Error("La variable " + token.image+" no se ha declarado o es un nombre invalido");
+  	  	}
+
+ 	}
+}
+
+void operation() :
+{}
+{
+	term() ( < PLUS > term() | < MINUS > term() )*
+}
+
+void term() :
+{}
+{
+// Parses  T -> T * F
+//         T -> T / F
+//         T -> F
+//   in EBNF:  T -> F {* F   | /  F }
+  
+ fact() ( < MULTIPLY > fact() | < DIVIDE > fact() )*
+}
+
+void fact() :
+{
+// Parses  F -> B
+//         F -> -B
+//         B -> num
+//         B -> '(' E ')'
+//   in EBNF:  F -> [-](num |'(' E ')')
+}
+{
+    (< MINUS >)? ( (var()|<NATURAL>) | "(" operation() ")")
+}

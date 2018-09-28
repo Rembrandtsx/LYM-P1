@@ -1,0 +1,187 @@
+/**
+ * JavaCC file
+ */
+ 
+options {
+  IGNORE_CASE = false;
+  STATIC = false;
+}
+PARSER_BEGIN(ParserREGEX)
+package uniandes.teolen.parserJavaCC.parserREGEX;
+
+import java.util.*;
+ 
+public class ParserREGEX {
+	public List<String> variables = new ArrayList<String>();
+	public List<String> alphabet = new ArrayList<String>();
+} 
+
+PARSER_END(ParserREGEX)
+
+SKIP :
+{
+ 	" " | "\r" | "\t" | "\n"
+
+}
+TOKEN : /* OPERATORS */
+{
+    < EQUAL: "=" >
+|   < OR: "|" >
+|   < DD: ":" >
+| 	< BEGIN: "BeginERS" >
+| 	< END: "EndERS" >
+| 	< ALPHABETDECLARATION: "Alphabet" >
+| 	< VACIO: "@" >
+| 	< CADENAVACIA: "$" >
+| 	< MULTIPLY: "*" >
+| 	< PLUS: "+">
+
+
+}
+
+TOKEN :
+{
+    < INT: ( <DIGIT> )( <DIGIT> )* >
+|   < #DIGIT: "0" | "1" | "2"| "3" | "4" | "5" |  "6" | "7" | "8" |"9" >
+|   < #MAYUSCULAS: ["A"-"Z"] >
+|   < #MINUSCULAS: ["a"-"z"] >
+| 	< SYMBOL:(<DIGIT>|<MINUSCULAS>)((<DIGIT>)|(<MAYUSCULAS>)|(<MINUSCULAS>))*   >
+| 	< VAR: (<MAYUSCULAS>)(<MAYUSCULAS>|<MINUSCULAS>|<INT>)* >
+
+}
+void expsRegs():
+{}
+{
+  <BEGIN>contenido()<END>
+}
+void contenido():
+{}
+{
+  
+  <ALPHABETDECLARATION><DD>alphabet()
+  (variable() <EQUAL> regex() ";")*
+}
+void alphabet():
+{}
+{
+  "{"(addSymbolAlphabet())("," addSymbolAlphabet())*"}"
+}
+
+
+void addSymbolAlphabet() throws Error :
+{
+	Token simbolo;
+}
+{
+  	(simbolo = <SYMBOL>)
+  	{
+  	  	boolean centinela = false;
+  	  	for(int i = 0; i < alphabet.size() && !centinela; i++)
+  	  	{
+	  	  	  if(alphabet.get(i).equals(simbolo.image))
+	  	  	  {
+	  	  	     centinela = true;
+	  	  	     throw new Error("El Simbolo:" + simbolo.image+"ya existe.");
+	  	  	  }
+  	  	}
+  	  	if(!centinela)
+  	  	{  	  	  
+	  		alphabet.add(simbolo.image);
+  	  	}
+
+ 	}
+}
+void variable():
+{
+	Token variable;
+}
+{
+  	(variable = <VAR>)
+  	{
+  	  	boolean centinela = false;
+  	  	for(int i = 0; i < variables.size() && !centinela; i++)
+  	  	{
+	  	  	  if(variables.get(i).equals(variable.image))
+	  	  	  {
+	  	  	     centinela = true;
+	  	  	     throw new Error("La variable: " + variable.image+" ya existe.");
+	  	  	  }
+  	  	}
+  	  	if(!centinela)
+  	  	{  	  	  
+	  		variables.add(variable.image);
+  	  	}
+
+ 	}
+}
+
+
+void regex():
+{}
+{
+  //INICIO LO DE EN MEDIO Y FIN
+	(expresion() (< OR >expresion())*)
+}
+
+void expresion():
+{
+}
+{
+	((expresionPeque())(<PLUS>|<MULTIPLY>))  	
+}
+void expresionPeque():
+{
+}
+{
+  simboloDeclarado()|variableDeclarada()|< CADENAVACIA >|< VACIO >
+}
+void simboloDeclarado():
+{
+	Token simbolo;
+}
+{
+  (simbolo = <SYMBOL>)
+  	{
+  	  	boolean centinela = false;
+  	  	for(int i = 0; i < alphabet.size() && !centinela; i++)
+  	  	{
+	  	  	  if(alphabet.get(i).equals(simbolo.image))
+	  	  	  {
+	  	  	     centinela = true;
+	  	  	     
+	  	  	  }
+  	  	}
+  	  	if(!centinela)
+  	  	{  	  	  
+	  		throw new Error("El Simbolo:" + simbolo.image+"no ha sido declarado en el alfabeto.");
+  	  	}
+
+ 	}
+}
+void variableDeclarada():
+{
+  Token variable;
+}
+{
+  (variable = <VAR>)
+  	{
+  	  	boolean centinela = false;
+  	  	for(int i = 0; i < variables.size() && !centinela; i++)
+  	  	{
+	  	  	  if(variables.get(i).equals(variable.image))
+	  	  	  {
+	  	  	     centinela = true;
+	  	  	     
+	  	  	  }
+  	  	}
+  	  	if(!centinela)
+  	  	{  	  	  
+	  		throw new Error("El Simbolo:" + simbolo.image+"no ha sido declarado en el alfabeto.");
+  	  	}
+
+ 	}
+}
+
+
+
+  
