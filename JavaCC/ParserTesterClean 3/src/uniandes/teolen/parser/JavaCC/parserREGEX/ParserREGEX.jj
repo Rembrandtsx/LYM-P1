@@ -70,7 +70,9 @@ void expsRegs():
 void define():
 {}
 {
-  
+  {
+      new ArrayList()
+  }
   <DEF>addFuncion()"("params()")" ":" (arithmeticExpression()|ifFunction() ) 
   
 }
