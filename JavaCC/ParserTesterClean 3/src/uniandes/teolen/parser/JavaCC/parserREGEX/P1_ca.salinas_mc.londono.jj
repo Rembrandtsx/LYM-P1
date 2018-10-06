@@ -1,0 +1,290 @@
+/**
+ * PARSER ARITMETICO 
+ * Camilo Salinas
+ * Camila Londoño
+ */
+
+options {
+    IGNORE_CASE = false;
+    STATIC = false;
+  }
+  PARSER_BEGIN(ParserRegex)
+  package uniandes.teolen.parserJavaCC.parserRegex;
+  
+  import java.util.*;
+   
+  public class ParserRegex {
+      public List<String> variables = new ArrayList<String>();
+      
+      public HashMap<String, String[]> funciones = new HashMap<String, String[]>();
+  } 
+  
+  PARSER_END(ParserRegex)
+  
+  SKIP :
+  {
+      " " | "\r" | "\t" | "\n"
+  
+  }
+  TOKEN : /* OPERATORS */
+  {
+      < ASIGNACION: "=" >
+  |   < VAR: "VAR" >
+  |   < MENOR: "<" >
+  |   < MAYOR: ">" >
+  |   < MENORIGUAL: "<=" >
+  |   < MAYORIGUAL: " >=" >
+  |   < IGUAL: "==" >
+  |   < DIFERENTE: "!=" >
+  |   < DEF: "define" >
+  |   < PRINT: "print" >
+  |   < IFStatement: "if">
+  |   < NOT: "not" >
+  |   < AND: "and" >
+  |   < OR: "or" >
+  |   < FALSE:"false">
+  |   < TRUE: "true">
+  |	< SUMA : "+">
+  |	< RESTA: "-">
+  |	< MULTIPLICACION : "*">
+  |	< DIVISION: "/">
+  
+  
+  }
+  
+  TOKEN :
+  {
+      < DIGIT: ["0"-"9"] >
+  |   < MAY : ["A"-"Z"] >
+  |   < MIN : ["a"-"z"] >
+  |   < VARIABLE :  <MAY > | < MIN > (<MAY > | < MIN >| < DIGIT >)* >
+  |   < FUNCION: (<MAY>|<MIN>|< DIGIT >)+ "(" <VARIABLE>(","<VARIABLE>)*  ")">
+   
+  
+  }
+  void expsRegs():
+  {}
+  {
+    (define()|declararVariable())+ print()		  
+  }
+  void define():
+  {
+     String[] parametros; 
+  }
+  {
+      <DEF> (parametros = addFuncion())":" (arithmeticExpression(parametros)|ifFunction(parametros) )   
+  }
+  
+  void arithmeticExpression(String[] parametros):
+  {}
+  {
+      exp(parametros)
+  }
+  
+  void ifFunction(String[] parametros) :
+  {}
+  {
+      <IFStatement> "(" negacion() "," (exp(parametros)|ifFunction(parametros)) "," (exp(parametros)|ifFunction(parametros))")"
+  }
+   
+  void orUnir():
+  {}
+  {
+      andUnir()  (<OR> andUnir())*
+  }
+  
+  void andUnir():
+  {}
+  {
+      negacion()(<AND> negacion())*
+  }
+  
+  void negacion():
+  {}//(num==0 AND num==1 ) != ( )
+  {     
+      (<NOT>)? (
+          (exp()
+          (<MAYOR>|<MENOR>|<MENORIGUAL>|<MAYORIGUAL>|<IGUAL>|<DIFERENTE>)
+          exp())  | 
+          "("orUnir()")")+
+  }
+  
+  void print():
+  {}
+  {
+      <PRINT> "(" (funcionDeclarada()|variableDeclarada()|exp())+ ")"
+  }
+  void declararVariable():
+  {}
+  {
+      <VAR> addNombreVariable() <EQUAL> valorVariable()
+  }
+  void exp(String[] parametros) :
+  {}
+  {
+  // Parses  E -> E + T
+  //         E -> E - T
+  //         E -> T
+  //   in EBNF:  E -> T {+ T   | - T }
+    term(parametros) ( < SUMA > term(parametros) | < RESTA > term(parametros) )*
+  }
+  
+  void term(String[] parametros) :
+  {}
+  {
+  // Parses  T -> T * F
+  //         T -> T / F
+  //         T -> F
+  //   in EBNF:  T -> F {* F   | /  F }
+   fact(parametros) ( < MULTIPLICACION >  fact(parametros) | < DIVISION >  fact(parametros) )*
+  }
+  void fact(String[] parametros) :
+  {
+  // Parses  F -> B
+  //         F -> -B
+  //         B -> num
+  //         B -> '(' E ')'
+  //   in EBNF:  F -> [-](num |'(' E ')')
+      
+  
+  }
+  {
+  (< RESTA >)? (< DIGIT >| "(" exp(parametros) ")"| variableDeclarada(parametros)|"["exp(parametros)"]")
+  
+  }
+  
+  void ifFunction():
+  {}
+  {
+    "{"(addSymbolAlphabet())("," addSymbolAlphabet())*"}"
+  }
+  
+  
+  String[] addFuncion() throws Error :
+  {
+      Token funcion;
+  }
+  {
+      (funcion = <FUNCION>)
+      {
+          String[] separadoParentesis = funcion.image.split("(");
+          boolean centinela = false;
+          Iterator iterator = funciones.entrySet().iterator();
+          String[] parametros = null;
+  
+          while(iterator.hasNext()&& !centinela)
+          {
+                if(iterator.getKey().equals( separadoParentesis[0] ))
+                {
+  
+                   centinela = true;
+                   throw new Error("La funcion:" + separadoParentesis[0]+"ya existe.");
+                }
+          }
+          if(!centinela)
+          {         
+              parametros = separadoParentesis[1].split(",");
+              funciones.put(separadoParentesis[0],parametros);
+              
+          }
+          return parametros;
+      }    
+  }
+  
+  void 
+  void addNombreVariable():
+  {
+      Token variable;
+  }
+  {
+      (variable = <VARIABLE>)
+      {
+          boolean centinela = false;
+          for(int i = 0; i < variables.size() && !centinela; i++)
+          {
+                if(variables.get(i).equals(variable.image))
+                {
+                   centinela = true;
+                   throw new Error("La variable: " + variable.image+" ya existe.");
+                }
+          }
+          if(!centinela)
+          {         
+              variables.add(variable.image);
+          }
+  
+      }
+  }
+  
+  
+  void expresion():
+  {
+  }
+  {
+      ((expresionPeque())(<PLUS>|<MULTIPLY>))     
+  }
+  void expresionPeque():
+  {
+  }
+  {
+    funcionDeclarada()|variableDeclarada()|< CADENAVACIA >|< VACIO >|"("expresion()")"
+  }
+  void funcionDeclarada():
+  {
+      Token funcion;
+  }
+  {
+    (funcion = <FUNCION>)
+      {
+          boolean centinela = false;
+          String[] separadoParentesis = funcion.image.split("(");
+          Iterator iterator = funciones.entrySet().iterator();
+          while(iterator.hasNext()&& !centinela)
+          {
+                if(funciones.get(i).equals(separadoParentesis[0]))
+                {
+                   centinela = true;
+                }
+          }
+          if(!centinela)
+          {         
+              throw new Error("La funcion:" + separadoParentesis[0]+"no ha sido declarada.");
+          }
+  
+      }
+  }
+  void variableDeclarada(String[] parametros):
+  {
+    Token variable;
+  }
+  {
+    (variable = <VARIABLE>)
+      {   
+          boolean centinela = false;
+          if(parametros !=null){
+              for(int i = 0; i < parametros.length && !centinela; i++)
+              {
+                    if(parametros[i].equals(variable.image))
+                    {
+                      centinela = true;
+                    }
+              }
+          }else{
+              for(int i = 0; i < variables.size() && !centinela; i++)
+              {
+                  if(variables.get(i).equals(variable.image))
+                  {
+                      centinela = true;
+                  }
+              }
+          
+          }
+          
+          
+          if(!centinela)
+          {         
+              throw new Error("La variable:" + variable.image+"no ha sido declarado en el alfabeto.");
+          }
+  
+      }
+  }
