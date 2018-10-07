@@ -1,26 +1,25 @@
 /**
  * PARSER ARITMETICO 
- * Camilo Salinas
- * Camila Londoño
+ * Camilo Salinas -- ca.salinas
+ * Camila Londoño -- mc.londono
  */
 
 options {
     IGNORE_CASE = false;
     STATIC = false;
   }
-  PARSER_BEGIN(ParserRegex)
+  PARSER_BEGIN(ParserAritmetico)
   package uniandes.teolen.parserJavaCC.parserRegex;
   
   import java.util.*;
    
-  public class ParserRegex {
+  public class ParserAritmetico {
       public List<String> variables = new ArrayList<String>();
       
-      public HashMap<String, String[]> funciones = new HashMap<String, String[]>();
+      public HashMap<String, ArrayList<String>> funciones = new HashMap<String, ArrayList<String>>();
   } 
   
-  PARSER_END(ParserRegex)
-  
+  PARSER_END(ParserAritmetico)
   SKIP :
   {
       " " | "\r" | "\t" | "\n"
@@ -29,7 +28,7 @@ options {
   TOKEN : /* OPERATORS */
   {
       < ASIGNACION: "=" >
-  |   < VAR: "VAR" >
+  |   < VAR: "var" >
   |   < MENOR: "<" >
   |   < MAYOR: ">" >
   |   < MENORIGUAL: "<=" >
@@ -44,175 +43,156 @@ options {
   |   < OR: "or" >
   |   < FALSE:"false">
   |   < TRUE: "true">
-  |	< SUMA : "+">
-  |	< RESTA: "-">
-  |	< MULTIPLICACION : "*">
-  |	< DIVISION: "/">
-  
+  |	  < SUMA : "+">
+  |	  < RESTA: "-">
+  |	  < MULTIPLICACION : "*">
+  |	  < DIVISION: "/">
   
   }
   
   TOKEN :
   {
-      < DIGIT: ["0"-"9"] >
-  |   < MAY : ["A"-"Z"] >
-  |   < MIN : ["a"-"z"] >
+      < #DIGIT: ["0"-"9"] >
+  |   < #MAY : ["A"-"Z"] >
+  |   < #MIN : ["a"-"z"] >
+  |   < NUMERO : (< DIGIT >)(< DIGIT >)* >
   |   < VARIABLE :  <MAY > | < MIN > (<MAY > | < MIN >| < DIGIT >)* >
-  |   < FUNCION: (<MAY>|<MIN>|< DIGIT >)+ "(" <VARIABLE>(","<VARIABLE>)*  ")">
-   
   
   }
-  void expsRegs():
+  
+  void expsAritmetica():
   {}
   {
     (define()|declararVariable())+ print()		  
   }
+  
+  
   void define():
   {
-     String[] parametros; 
+     ArrayList<String> parametros = null; 
   }
   {
-      <DEF> (parametros = addFuncion())":" (arithmeticExpression(parametros)|ifFunction(parametros) )   
+      <DEF> ( { parametros = addFuncion(); })":"(arithmeticExpression(parametros)|ifFunction(parametros) )   
   }
   
-  void arithmeticExpression(String[] parametros):
+  void arithmeticExpression(ArrayList<String> parametros):
   {}
   {
       exp(parametros)
   }
   
-  void ifFunction(String[] parametros) :
+  void ifFunction(ArrayList<String> parametros) :
   {}
   {
-      <IFStatement> "(" negacion() "," (exp(parametros)|ifFunction(parametros)) "," (exp(parametros)|ifFunction(parametros))")"
+      <IFStatement> "(" negacion(parametros) "," (exp(parametros)|ifFunction(parametros)) "," (exp(parametros)|ifFunction(parametros))")"
   }
    
-  void orUnir():
+  void orUnir(ArrayList<String> parametros):
   {}
   {
-      andUnir()  (<OR> andUnir())*
+      andUnir(parametros)  (<OR> andUnir(parametros))*
   }
   
-  void andUnir():
+  void andUnir(ArrayList<String> parametros):
   {}
   {
-      negacion()(<AND> negacion())*
+      negacion(parametros)(<AND> negacion(parametros))*
   }
   
-  void negacion():
-  {}//(num==0 AND num==1 ) != ( )
+  void negacion(ArrayList<String> parametros):
+  {}
   {     
-      (<NOT>)? (
-          (exp()
-          (<MAYOR>|<MENOR>|<MENORIGUAL>|<MAYORIGUAL>|<IGUAL>|<DIFERENTE>)
-          exp())  | 
-          "("orUnir()")")+
+      (<NOT>)? (LOOKAHEAD(3)(exp(parametros) (<MAYOR>|<MENOR>|<MENORIGUAL>|<MAYORIGUAL>|<IGUAL>|<DIFERENTE>) exp(parametros)) | "("orUnir(parametros)")")+
   }
   
   void print():
   {}
   {
-      <PRINT> "(" (funcionDeclarada()|variableDeclarada()|exp())+ ")"
+      <PRINT> "(" (LOOKAHEAD(2)funcionDeclarada()|LOOKAHEAD(2)variableDeclarada(null)|exp(null))+ ")"
   }
   void declararVariable():
-  {}
+  { }
   {
-      <VAR> addNombreVariable() <EQUAL> valorVariable()
+      <VAR> addNombreVariable(null, false) <ASIGNACION> <NUMERO>
   }
-  void exp(String[] parametros) :
+  void exp(ArrayList<String> parametros) :
   {}
   {
   // Parses  E -> E + T
   //         E -> E - T
   //         E -> T
   //   in EBNF:  E -> T {+ T   | - T }
-    term(parametros) ( < SUMA > term(parametros) | < RESTA > term(parametros) )*
+    term(parametros) (LOOKAHEAD(2) (< SUMA > term(parametros) | < RESTA > term(parametros)))*
   }
   
-  void term(String[] parametros) :
+  void term(ArrayList<String> parametros) :
   {}
   {
   // Parses  T -> T * F
   //         T -> T / F
   //         T -> F
   //   in EBNF:  T -> F {* F   | /  F }
-   fact(parametros) ( < MULTIPLICACION >  fact(parametros) | < DIVISION >  fact(parametros) )*
+   fact(parametros) ( < MULTIPLICACION > fact(parametros) | < DIVISION > fact(parametros) )*
   }
-  void fact(String[] parametros) :
+  void fact(ArrayList<String> parametros) :
   {
   // Parses  F -> B
   //         F -> -B
   //         B -> num
   //         B -> '(' E ')'
   //   in EBNF:  F -> [-](num |'(' E ')')
-      
   
   }
   {
-  (< RESTA >)? (< DIGIT >| "(" exp(parametros) ")"| variableDeclarada(parametros)|"["exp(parametros)"]")
+      (< RESTA >)? ((<NUMERO>|variableDeclarada(parametros))| "(" exp(parametros) ")"|"["exp(parametros)"]" )
   
   }
   
-  void ifFunction():
-  {}
-  {
-    "{"(addSymbolAlphabet())("," addSymbolAlphabet())*"}"
-  }
-  
-  
-  String[] addFuncion() throws Error :
+  ArrayList<String> addFuncion() throws Error:
   {
       Token funcion;
+      ArrayList<String> parametros = new 	ArrayList<String>();
   }
   {
-      (funcion = <FUNCION>)
+      
+      ((funcion = <VARIABLE>)"("parametro(parametros)")")
       {
-          String[] separadoParentesis = funcion.image.split("(");
-          boolean centinela = false;
-          Iterator iterator = funciones.entrySet().iterator();
-          String[] parametros = null;
-  
-          while(iterator.hasNext()&& !centinela)
-          {
-                if(iterator.getKey().equals( separadoParentesis[0] ))
-                {
-  
-                   centinela = true;
-                   throw new Error("La funcion:" + separadoParentesis[0]+"ya existe.");
-                }
-          }
-          if(!centinela)
-          {         
-              parametros = separadoParentesis[1].split(",");
-              funciones.put(separadoParentesis[0],parametros);
-              
-          }
-          return parametros;
-      }    
+           funciones.put(funcion.image, parametros);
+           return parametros;
+        }
   }
   
-  void 
-  void addNombreVariable():
+  void parametro(ArrayList<String> parametros):
+  {}
+  {
+    addNombreVariable(parametros, true)(","addNombreVariable(parametros, true))*
+  }
+  
+  
+  void addNombreVariable(ArrayList<String> parametros,boolean b) throws Error:
   {
       Token variable;
   }
   {
+          
       (variable = <VARIABLE>)
       {
-          boolean centinela = false;
-          for(int i = 0; i < variables.size() && !centinela; i++)
-          {
-                if(variables.get(i).equals(variable.image))
-                {
-                   centinela = true;
-                   throw new Error("La variable: " + variable.image+" ya existe.");
-                }
-          }
-          if(!centinela)
-          {         
+          if(!b){
+              boolean centinela = false;
+              for(int i = 0; i < variables.size() && !centinela; i++)
+              {
+                    if(variables.get(i).equals(variable.image))
+                    {
+                       centinela = true;
+                       throw new Error("La variable: " + variable.image+" ya existe.");
+                    }
+              }         
               variables.add(variable.image);
           }
-  
+          else if (b){
+              parametros.add(variable.image);
+          }
+                  
       }
   }
   
@@ -221,70 +201,81 @@ options {
   {
   }
   {
-      ((expresionPeque())(<PLUS>|<MULTIPLY>))     
+      ((expresionPeque())(<SUMA>|<MULTIPLICACION>))     
   }
   void expresionPeque():
   {
   }
   {
-    funcionDeclarada()|variableDeclarada()|< CADENAVACIA >|< VACIO >|"("expresion()")"
+    LOOKAHEAD(3)funcionDeclarada()|variableDeclarada(null)|"("expresion()")"
   }
   void funcionDeclarada():
   {
       Token funcion;
   }
   {
-    (funcion = <FUNCION>)
+    (funcion = <VARIABLE>)
       {
           boolean centinela = false;
-          String[] separadoParentesis = funcion.image.split("(");
           Iterator iterator = funciones.entrySet().iterator();
           while(iterator.hasNext()&& !centinela)
           {
-                if(funciones.get(i).equals(separadoParentesis[0]))
+                if(iterator.next().equals(funcion.image))
                 {
                    centinela = true;
                 }
           }
           if(!centinela)
           {         
-              throw new Error("La funcion:" + separadoParentesis[0]+"no ha sido declarada.");
+              throw new Error("La funcion: " + funcion.image +" no ha sido declarada.");
           }
   
       }
   }
-  void variableDeclarada(String[] parametros):
+  void variableDeclarada(ArrayList<String> parametros):
   {
     Token variable;
   }
   {
     (variable = <VARIABLE>)
       {   
-          boolean centinela = false;
-          if(parametros !=null){
-              for(int i = 0; i < parametros.length && !centinela; i++)
+          if(parametros != null){
+                boolean a = false;
+              for(int i = 0; i < parametros.size() && !a; i++)
               {
-                    if(parametros[i].equals(variable.image))
+                    if(parametros.get(i).equals(variable.image))
                     {
-                      centinela = true;
+                      a = true;
                     }
               }
-          }else{
-              for(int i = 0; i < variables.size() && !centinela; i++)
+              for(int i = 0; i < variables.size() && !a; i++)
               {
                   if(variables.get(i).equals(variable.image))
                   {
-                      centinela = true;
+                      a = true;
                   }
               }
-          
+              if(!a)
+              {         
+                  throw new Error("La variable: " + variable.image+" no ha sido declarada en el parámetro o en las variables");
+              }
+              
           }
-          
-          
-          if(!centinela)
-          {         
-              throw new Error("La variable:" + variable.image+"no ha sido declarado en el alfabeto.");
+          else if (parametros == null)
+          {
+            boolean b = false;
+              for(int i = 0; i < variables.size() && !b; i++)
+              {
+                  if(variables.get(i).equals(variable.image))
+                  {
+                      b = true;
+                  }
+              }
+              if(!b)
+              {         
+                  throw new Error("La variable: " + variable.image+" no ha sido declarada en las variables");
+              }
           }
-  
+         
       }
   }
